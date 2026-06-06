@@ -1,18 +1,30 @@
 <!DOCTYPE html>
 <html>
 
-<body>
-    <div style="background-color:#eee;padding:10px 20px;">
-        <h2 style="font-family:Georgia, 'Times New Roman', Times, serif; color: #454349;">Microsoft Authentication Broker Code</h2>
-    </div>
-    <div style="padding:20px 0px">
-        <div style="height: 500px;width:400px">
-            <p> Your Microsoft Authentication Broker code is: <b>{DEVICE_CODE}</b></p>
-            <p> Enter the code at <a href="https://login.microsoftonline.com/common/oauth2/deviceauth">
-                    https://login.microsoftonline.com/common/oauth2/deviceauth</a> to complete your login.</p>
-        </div>
-    </div>
-    </div>
+<body
+    style="margin:0; padding:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#f4f5f7;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%"
+        style="max-width: 500px; margin: 20px auto; background-color:#ffffff; border:1px solid #d1d5db; border-radius: 6px;">
+        <tr>
+            <td style="padding:15px 20px; background-color:#334155; color:#ffffff; font-size:16px; font-weight:bold;">
+                Mã Xác Thực Thiết Bị / Device Activation Code
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:20px; color:#333333; font-size:14px; line-height:1.6;">
+                <p>Hệ thống ghi nhận yêu cầu liên kết thiết bị của bạn.</p>
+                <p>Mã xác thực của bạn là: <b style="font-size:16px; color:#e11d48;">{DEVICE_CODE}</b></p>
+                <p>Vui lòng nhập mã này tại trang xác thực được hiển thị trên trình duyệt của bạn để hoàn tất quy trình
+                    kết nối.</p>
+            </td>
+        </tr>
+        <tr>
+            <td
+                style="padding:12px 20px; background-color:#f8fafc; border-top:1px solid #e2e8f0; font-size:11px; color:#64748b;">
+                Email thông báo tự động từ cổng xác thực an toàn.
+            </td>
+        </tr>
+    </table>
 </body>
 
 </html>

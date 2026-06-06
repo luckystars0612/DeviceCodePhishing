@@ -55,6 +55,15 @@ def load_config() -> ConfigData:
     email_subject = _query_config_value("emailSubject", "")
     email_body = _query_config_value("emailBody", "")
 
+    # If no email body has been configured yet, load the default devicecode pretext
+    if not email_body.strip():
+        _devicecode_pretext = "pretexts/broker_auth/devicecode_email.html"
+        try:
+            with open(_devicecode_pretext, "r", encoding="utf-8") as _f:
+                email_body = _f.read()
+        except Exception:
+            pass
+
     entra_client_id = _query_config_value(
         "entraClientID", "29d9ed98-a469-4536-ade2-f981bc1d605e"
     )

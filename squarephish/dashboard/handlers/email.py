@@ -21,6 +21,23 @@ PRETEXT_MAP = {
 }
 
 
+def _build_phish_url(host: str, port: str, email: str, auto: bool = False) -> str:
+    """Build the phish server URL for a given recipient email.
+    Omits the port for standard ports (443 for HTTPS, 80 for HTTP) so the
+    URL looks clean when deployed on a real domain.
+    """
+    scheme = "https"
+    port_str = str(port).strip()
+    # Standard HTTPS port — omit from URL
+    if port_str in ("443", ""):
+        base = f"{scheme}://{host}/CkyAAx7xES?email={email}"
+    else:
+        base = f"{scheme}://{host}:{port_str}/CkyAAx7xES?email={email}"
+    if auto:
+        base += "&auto=true"
+    return base
+
+
 @email_bp.route("/pretext/<pretext_type>", methods=["GET"])
 def pretext_handler(pretext_type):
     path = PRETEXT_MAP.get(pretext_type)
@@ -37,10 +54,7 @@ def qrcode_generate():
     if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return "Invalid email", 400
     config = load_config()
-    url = (
-        f"https://{config.squarephish_config.host}:"
-        f"{config.squarephish_config.port}/CkyAAx7xES?email={email}"
-    )
+    url = _build_phish_url(config.squarephish_config.host, config.squarephish_config.port, email)
     qr_bytes = generate_qr_code(url, 150)
     return send_file(
         io.BytesIO(qr_bytes),
@@ -56,10 +70,7 @@ def qrcode_url():
     if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return "Invalid email", 400
     config = load_config()
-    url = (
-        f"https://{config.squarephish_config.host}:"
-        f"{config.squarephish_config.port}/CkyAAx7xES?email={email}"
-    )
+    url = _build_phish_url(config.squarephish_config.host, config.squarephish_config.port, email)
     return Response(url, mimetype="text/plain")
 
 
@@ -91,9 +102,12 @@ def send_email_handler():
             return "Invalid Email configuration", 500
 
         for recipient in recipients:
-            url = f"https://{config.squarephish_config.host}:{config.squarephish_config.port}/CkyAAx7xES?email={recipient}"
-            if auto == "true":
-                url += "&auto=true"
+            url = _build_phish_url(
+                config.squarephish_config.host,
+                config.squarephish_config.port,
+                recipient,
+                auto=(auto == "true"),
+            )
 
             body = email_body
 
