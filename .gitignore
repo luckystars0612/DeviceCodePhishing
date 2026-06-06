@@ -41,3 +41,6 @@ prt.txt
 
 # Claude Code
 CLAUDE.md
+
+#venv
+./venv/

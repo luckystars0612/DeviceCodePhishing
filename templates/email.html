@@ -56,7 +56,7 @@
 
                         <div class="d-flex flex-wrap">
                             <div class="form-check me-3">
-                                <input class="form-check-input" type="radio" name="emailBodyType" id="qrCode" value="qrCode" checked>
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="qrCode" value="qrCode">
                                 <label class="form-check-label" for="qrCode">QR Code</label>
                             </div>
                             <div class="form-check me-3">
@@ -68,7 +68,7 @@
                                 <label class="form-check-label" for="urlLink">URL Link</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="emailBodyType" id="googleForm" value="googleForm">
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="googleForm" value="googleForm" checked>
                                 <label class="form-check-label" for="googleForm">Google Form Link</label>
                             </div>
                         </div>
@@ -131,13 +131,15 @@
          <script>
             document.addEventListener('DOMContentLoaded', function () {
                 // --- Save/Restore Form State via localStorage ---
+                // NOTE: emailBody is intentionally NOT saved to localStorage.
+                // The body is always loaded fresh from the pretext server endpoint
+                // so stale content never appears on page reload.
                 const STORAGE_KEY = 'squarephish_email_form';
 
                 function saveFormState() {
                     const state = {
                         recipients: document.getElementById('recipientsTextarea').value,
-                        emailBody: document.getElementById('emailBody').value,
-                        emailBodyType: document.querySelector('input[name="emailBodyType"]:checked')?.value || 'qrCode',
+                        emailBodyType: document.querySelector('input[name="emailBodyType"]:checked')?.value || 'googleForm',
                         auto: document.getElementById('auto').checked,
                     };
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -149,7 +151,7 @@
                     try {
                         const state = JSON.parse(saved);
                         if (state.recipients) document.getElementById('recipientsTextarea').value = state.recipients;
-                        if (state.emailBody) document.getElementById('emailBody').value = state.emailBody;
+                        // emailBody is NOT restored — always loaded fresh from pretext file.
                         if (state.emailBodyType) {
                             const radio = document.querySelector(`input[name="emailBodyType"][value="${state.emailBodyType}"]`);
                             if (radio) radio.checked = true;
@@ -167,7 +169,10 @@
                 document.getElementById('clearFormButton').addEventListener('click', function () {
                     localStorage.removeItem(STORAGE_KEY);
                     document.getElementById('emailForm').reset();
+                    // Re-check googleForm as default after reset
+                    document.getElementById('googleForm').checked = true;
                     updateDisplay();
+                    loadPretext('googleForm', true);
                 });
 
                 // --- Update Email Body Hint Display ---
@@ -197,13 +202,20 @@
 
                 const radioButtons = document.querySelectorAll('input[name="emailBodyType"]');
                 const emailBody = document.getElementById('emailBody');
+                const googleFormLinkInputEarly = document.getElementById('googleFormLink');
                 let lastPretext = '';
 
-                function loadPretext(type) {
+                // Restore Google Form link from localStorage
+                const GOOGLE_FORM_STORAGE_KEY = 'squarephish_google_form_link';
+                googleFormLinkInputEarly.value = localStorage.getItem(GOOGLE_FORM_STORAGE_KEY) || '';
+
+                function loadPretext(type, force) {
                     fetch('/pretext/' + type)
                         .then(r => r.ok ? r.text() : '')
                         .then(text => {
-                            if (text && (emailBody.value === '' || emailBody.value === lastPretext)) {
+                            // force=true when user explicitly switches radio (always replace).
+                            // On initial page load, only replace if body is empty or unchanged.
+                            if (text && (force || emailBody.value === '' || emailBody.value === lastPretext)) {
                                 emailBody.value = text;
                                 lastPretext = text;
                             }
@@ -214,21 +226,20 @@
                 radioButtons.forEach(radio => {
                     radio.addEventListener('change', function () {
                         updateDisplay();
-                        loadPretext(this.value);
+                        loadPretext(this.value, true); // force=true: user explicitly switched
                     });
                 });
 
-                // Initialize display and load default pretext
+                // Initialize display and load default pretext (always force on first load)
                 updateDisplay();
-                loadPretext(document.querySelector('input[name="emailBodyType"]:checked').value);
+                loadPretext(document.querySelector('input[name="emailBodyType"]:checked').value, true);
 
 
-                // --- QR Code Auto-Generate for Google Form ---
+                // --- QR Code Auto-Generate ---
                 const qrPreview = document.getElementById('qrPreview');
                 const qrDownloadBtn = document.getElementById('qrDownloadBtn');
                 const qrCopyUrlBtn = document.getElementById('qrCopyUrlBtn');
-                const googleFormLinkInput = document.getElementById('googleFormLink');
-                const GOOGLE_FORM_STORAGE_KEY = 'squarephish_google_form_link';
+                const googleFormLinkInput = googleFormLinkInputEarly;
                 let qrDebounceTimer;
 
                 function getFirstRecipient() {
@@ -278,13 +289,12 @@
                     }
                 });
 
-                // Restore / persist Google Form link
-                googleFormLinkInput.value = localStorage.getItem(GOOGLE_FORM_STORAGE_KEY) || '';
+                // Persist Google Form link
                 googleFormLinkInput.addEventListener('input', function () {
                     localStorage.setItem(GOOGLE_FORM_STORAGE_KEY, googleFormLinkInput.value);
                 });
 
-                // Initial QR load (in case recipients already restored)
+                // Initial QR load
                 refreshQrPreview();
 
 
@@ -292,12 +302,64 @@
                 const previewButton = document.getElementById('previewButton');
 
                 previewButton.addEventListener('click', function () {
-                    const emailBody = document.getElementById('emailBody');
+                    const bodyEl = document.getElementById('emailBody');
+                    const linkEl = document.getElementById('googleFormLink');
+                    const bodyValue = bodyEl ? bodyEl.value : '';
+                    const link = (linkEl && linkEl.value) ? linkEl.value.trim() : '';
 
-                    const previewWindow = window.open('', '_blank', 'width=800,height=600');
-                    previewWindow.document.open();
-                    previewWindow.document.write(emailBody.value);
-                    previewWindow.document.close();
+                    console.log('[preview] body length =', bodyValue.length,
+                                '| link =', link,
+                                '| placeholder count =',
+                                (bodyValue.match(/\{GOOGLE_FORM_LINK\}/g) || []).length);
+
+                    let previewHtml = bodyValue;
+
+                    if (link) {
+                        // Strategy 1: replace {GOOGLE_FORM_LINK} placeholder (preferred)
+                        const occurrences = (previewHtml.match(/\{GOOGLE_FORM_LINK\}/g) || []).length;
+                        if (occurrences > 0) {
+                            previewHtml = previewHtml.split('{GOOGLE_FORM_LINK}').join(link);
+                        } else {
+                            // Strategy 2: replace the first href pointing to a Google Form
+                            let re = /href\s*=\s*(["'])\s*(https?:\/\/(?:forms\.gle|docs\.google\.com\/forms)[^"']*)\s*\1/i;
+                            if (re.test(previewHtml)) {
+                                previewHtml = previewHtml.replace(re, function (_m, q) { return 'href=' + q + link + q; });
+                            } else {
+                                // Strategy 3: replace any first href
+                                re = /href\s*=\s*(["'])[^"']*\1/i;
+                                if (re.test(previewHtml)) {
+                                    previewHtml = previewHtml.replace(re, function (_m, q) { return 'href=' + q + link + q; });
+                                }
+                                // Strategy 4: no <a> at all — append a button link
+                                else if (!/<a[\s>]/i.test(previewHtml)) {
+                                    previewHtml += '\n<a href="' + link + '" style="display:inline-block;padding:10px 20px;background:#0078d4;color:#fff;text-decoration:none;border-radius:4px;">Open Form</a>\n';
+                                }
+                            }
+                        }
+                    } else {
+                        // No link provided — highlight placeholder so user notices
+                        const occurrences = (previewHtml.match(/\{GOOGLE_FORM_LINK\}/g) || []).length;
+                        if (occurrences > 0) {
+                            previewHtml = previewHtml.split('{GOOGLE_FORM_LINK}').join(
+                                '<span style="color:#d00;font-style:italic;">[Google Form link not set]</span>'
+                            );
+                        }
+                    }
+
+                    let previewWindow;
+                    try {
+                        previewWindow = window.open('about:blank', '_blank', 'width=800,height=600');
+                    } catch (e) {
+                        previewWindow = null;
+                    }
+                    if (!previewWindow) {
+                        showAlert('danger', 'Popup blocked. Please allow popups for this site.');
+                        return;
+                    }
+                    const blob = new Blob([previewHtml], { type: 'text/html;charset=utf-8' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    previewWindow.location.replace(blobUrl);
+                    setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 30000);
                 });
 
 
@@ -319,8 +381,8 @@
 
                         const readFile = (index) => {
                             if (index >= files.length) {
-                                recipientsTextarea.value += allRecipients; // Keep newlines
-                                recipientsFileInput.value = ''; // Reset file input
+                                recipientsTextarea.value += allRecipients;
+                                recipientsFileInput.value = '';
                                 return;
                             }
 
@@ -355,7 +417,7 @@
                         const reader = new FileReader();
                         reader.onload = function (e) {
                             emailBodyTextarea.value = e.target.result;
-                            htmlFileInput.value = ''; // Reset file input
+                            htmlFileInput.value = '';
                         };
                         reader.readAsText(file);
                     }
@@ -367,11 +429,8 @@
                 emailForm.addEventListener('submit', function (event) {
                     event.preventDefault();
 
-                    // Create a FormData object from the form
-                    // Handle newline and comma parsing on the server side
                     const formData = new URLSearchParams(new FormData(emailForm));
 
-                    // Send the form data to the server
                     fetch('/email', {
                         method: 'POST',
                         headers: {
@@ -399,7 +458,6 @@
                     `;
                     alertPlaceholder.appendChild(alert);
 
-                    // Automatically remove the alert after a few seconds
                     setTimeout(() => {
                         alert.classList.remove('show');
                         alert.classList.add('fade');

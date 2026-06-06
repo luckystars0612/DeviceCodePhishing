@@ -26,7 +26,7 @@ def pretext_handler(pretext_type):
     path = PRETEXT_MAP.get(pretext_type)
     if not path or not os.path.isfile(path):
         return "Pretext not found", 404
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return f.read(), 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 

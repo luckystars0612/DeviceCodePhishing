@@ -60,6 +60,7 @@ def main():
     if phish_conf.use_tls:
         phish_ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         phish_ssl_context.load_cert_chain(phish_conf.cert_path, phish_conf.key_path)
+        logger.info("Phish server TLS enabled (cert: %s)", phish_conf.cert_path)
 
     phish_thread = threading.Thread(
         target=lambda: phish_app.run(
@@ -82,6 +83,7 @@ def main():
     if dash_conf.use_tls:
         dash_ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         dash_ssl_context.load_cert_chain(dash_conf.cert_path, dash_conf.key_path)
+        logger.info("Dashboard TLS enabled (cert: %s)", dash_conf.cert_path)
 
     dashboard_app = create_app()
 
