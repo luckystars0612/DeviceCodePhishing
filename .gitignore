@@ -1,0 +1,43 @@
+# env file
+.env
+
+# SSL/TLS certificates
+*.crt
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Database
+*.db
+
+# Todo list
+todo.md
+
+# Custom ignores
+**/.DS_Store
+.vscode/
+logs/
+*.log
+*.txt
+!requirements.txt
+
+# Executables
+releases/
+squarephish-*.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# gimmePRT
+prt.txt
+
+# Claude Code
+CLAUDE.md

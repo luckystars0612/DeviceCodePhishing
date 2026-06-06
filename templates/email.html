@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block body %}
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-envelope-fill me-2"></i>Send Email</h1>
+            </div>
+
+            <form id="emailForm">
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recipients</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="recipientsTextarea" class="form-label">Recipients</label>
+                            <textarea class="form-control" id="recipientsTextarea" name="recipients" rows="2" placeholder="Enter recipient emails, separated by a comma or a new line"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary" id="uploadRecipientsFileButton"><i class="bi bi-upload me-2"></i>Upload File</button>
+                        <input type="file" class="d-none" id="recipientsFileInput" multiple>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">QR Code for Google Form</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Auto-generated for the first recipient above. Download this QR code
+                            and embed it into your Google Form. Recommended image size: 150&times;150 px.
+                        </p>
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <img id="qrPreview" src="" alt="Enter recipient email to generate QR"
+                                 style="width:150px;height:150px;border:1px solid #ddd;padding:4px;background:#fff;">
+                            <div>
+                                <button type="button" class="btn btn-outline-primary mb-2" id="qrDownloadBtn">
+                                    <i class="bi bi-download me-2"></i>Download PNG
+                                </button><br/>
+                                <button type="button" class="btn btn-outline-secondary" id="qrCopyUrlBtn">
+                                    <i class="bi bi-clipboard me-2"></i>Copy URL
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Phishing Email</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="emailBody" class="form-label">Email Body</label>
+                            <textarea class="form-control" id="emailBody" name="emailBody" rows="10" placeholder="Enter the initial phishing email body"></textarea>
+                        </div>
+
+                        <div class="d-flex flex-wrap">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="qrCode" value="qrCode" checked>
+                                <label class="form-check-label" for="qrCode">QR Code</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="asciiQrCode" value="asciiQrCode">
+                                <label class="form-check-label" for="asciiQrCode">ASCII QR Code</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="urlLink" value="urlLink">
+                                <label class="form-check-label" for="urlLink">URL Link</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="emailBodyType" id="googleForm" value="googleForm">
+                                <label class="form-check-label" for="googleForm">Google Form Link</label>
+                            </div>
+                        </div>
+
+                        <p id="qrCodeText" class="text-muted">QR Code requires an <code>img</code> tag with <code>src="cid:qrcode"</code> to insert the QR code image.</p>
+                        <p id="asciiQrCodeText" class="text-muted">ASCII QR Code requires <code>{QR_CODE}</code> to insert the QR code ASCII string.</p>
+                        <p id="urlLinkText" class="text-muted">URL Link requires <code>{URL}</code> to insert the URL link.</p>
+                        <p id="googleFormText" class="text-muted">Google Form Link requires <code>{GOOGLE_FORM_LINK}</code> in the body. The link you paste below will be substituted into the email body.</p>
+
+                        <div class="mb-3 mt-3">
+                            <label for="googleFormLink" class="form-label">Google Form Link</label>
+                            <input type="url" class="form-control" id="googleFormLink" name="googleFormLink"
+                                   placeholder="https://docs.google.com/forms/d/e/.../viewform">
+                            <p class="text-muted mb-0">Required when "Google Form Link" mode is selected.</p>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-secondary" id="uploadHtmlButton"><i class="bi bi-upload me-2"></i>Upload File</button>
+                        <input type="file" class="d-none" id="htmlFileInput" accept=".html">
+
+                        <button type="button" class="btn btn-secondary" id="previewButton">
+                            <i class="bi bi-eye-fill me-2"></i>Open Preview
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Advanced Settings</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="auto" name="auto" value="true">
+                                <label class="form-check-label" for="auto">Automatic authentication URL retrieval</label>
+                            </div>
+                        </div>
+
+                        <p class="text-muted">
+                            If automatic retrieval is enabled, SquarePhish will take the retrieved device code and automatically generate the authentication URL for the victim.
+                            This will remove the need to send the victim the device code via email.
+                            The victim will be redirected to the authentication URL directly from the link clicked or QR code scanned.
+                            If this fails, SquarePhish will fallback to sending the device code email as normal.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-send-fill me-2"></i>Send Email
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-lg ms-2" id="clearFormButton">
+                        <i class="bi bi-x-circle me-2"></i>Clear
+                    </button>
+                </div>
+            </form>
+{% endblock %}
+
+{% block scripts %}
+         <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // --- Save/Restore Form State via localStorage ---
+                const STORAGE_KEY = 'squarephish_email_form';
+
+                function saveFormState() {
+                    const state = {
+                        recipients: document.getElementById('recipientsTextarea').value,
+                        emailBody: document.getElementById('emailBody').value,
+                        emailBodyType: document.querySelector('input[name="emailBodyType"]:checked')?.value || 'qrCode',
+                        auto: document.getElementById('auto').checked,
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                }
+
+                function restoreFormState() {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (!saved) return;
+                    try {
+                        const state = JSON.parse(saved);
+                        if (state.recipients) document.getElementById('recipientsTextarea').value = state.recipients;
+                        if (state.emailBody) document.getElementById('emailBody').value = state.emailBody;
+                        if (state.emailBodyType) {
+                            const radio = document.querySelector(`input[name="emailBodyType"][value="${state.emailBodyType}"]`);
+                            if (radio) radio.checked = true;
+                        }
+                        if (state.auto) document.getElementById('auto').checked = true;
+                    } catch (e) {}
+                }
+
+                restoreFormState();
+
+                document.getElementById('emailForm').addEventListener('input', saveFormState);
+                document.querySelectorAll('input[name="emailBodyType"]').forEach(r => r.addEventListener('change', saveFormState));
+                document.getElementById('auto').addEventListener('change', saveFormState);
+
+                document.getElementById('clearFormButton').addEventListener('click', function () {
+                    localStorage.removeItem(STORAGE_KEY);
+                    document.getElementById('emailForm').reset();
+                    updateDisplay();
+                });
+
+                // --- Update Email Body Hint Display ---
+                const qrCodeText = document.getElementById('qrCodeText');
+                const asciiQrCodeText = document.getElementById('asciiQrCodeText');
+                const urlLinkText = document.getElementById('urlLinkText');
+                const googleFormText = document.getElementById('googleFormText');
+
+                function updateDisplay() {
+                    const selectedValue = document.querySelector('input[name="emailBodyType"]:checked').value;
+
+                    qrCodeText.style.display = 'none';
+                    asciiQrCodeText.style.display = 'none';
+                    urlLinkText.style.display = 'none';
+                    googleFormText.style.display = 'none';
+
+                    if (selectedValue === 'qrCode') {
+                        qrCodeText.style.display = '';
+                    } else if (selectedValue === 'asciiQrCode') {
+                        asciiQrCodeText.style.display = '';
+                    } else if (selectedValue === 'urlLink') {
+                        urlLinkText.style.display = '';
+                    } else if (selectedValue === 'googleForm') {
+                        googleFormText.style.display = '';
+                    }
+                }
+
+                const radioButtons = document.querySelectorAll('input[name="emailBodyType"]');
+                const emailBody = document.getElementById('emailBody');
+                let lastPretext = '';
+
+                function loadPretext(type) {
+                    fetch('/pretext/' + type)
+                        .then(r => r.ok ? r.text() : '')
+                        .then(text => {
+                            if (text && (emailBody.value === '' || emailBody.value === lastPretext)) {
+                                emailBody.value = text;
+                                lastPretext = text;
+                            }
+                        })
+                        .catch(() => {});
+                }
+
+                radioButtons.forEach(radio => {
+                    radio.addEventListener('change', function () {
+                        updateDisplay();
+                        loadPretext(this.value);
+                    });
+                });
+
+                // Initialize display and load default pretext
+                updateDisplay();
+                loadPretext(document.querySelector('input[name="emailBodyType"]:checked').value);
+
+
+                // --- QR Code Auto-Generate for Google Form ---
+                const qrPreview = document.getElementById('qrPreview');
+                const qrDownloadBtn = document.getElementById('qrDownloadBtn');
+                const qrCopyUrlBtn = document.getElementById('qrCopyUrlBtn');
+                const googleFormLinkInput = document.getElementById('googleFormLink');
+                const GOOGLE_FORM_STORAGE_KEY = 'squarephish_google_form_link';
+                let qrDebounceTimer;
+
+                function getFirstRecipient() {
+                    const raw = (document.getElementById('recipientsTextarea').value || '').trim();
+                    const first = raw.split(/[,\n]/)[0] ? raw.split(/[,\n]/)[0].trim() : '';
+                    return /^[^@]+@[^@]+\.[^@]+$/.test(first) ? first : '';
+                }
+
+                function refreshQrPreview() {
+                    clearTimeout(qrDebounceTimer);
+                    const email = getFirstRecipient();
+                    if (!email) {
+                        qrPreview.src = '';
+                        qrPreview.alt = 'Enter recipient email to generate QR';
+                        return;
+                    }
+                    qrDebounceTimer = setTimeout(function () {
+                        qrPreview.src = '/qrcode/generate?email=' + encodeURIComponent(email) + '&t=' + Date.now();
+                        qrPreview.alt = 'QR Code for ' + email;
+                    }, 400);
+                }
+
+                document.getElementById('recipientsTextarea').addEventListener('input', refreshQrPreview);
+
+                qrDownloadBtn.addEventListener('click', function () {
+                    const email = getFirstRecipient();
+                    if (!email) { showAlert('warning', 'Please enter a recipient email first'); return; }
+                    const a = document.createElement('a');
+                    a.href = '/qrcode/generate?email=' + encodeURIComponent(email) + '&download=1';
+                    a.download = 'qrcode_' + email.replace(/[^a-z0-9]/gi, '_') + '.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+
+                qrCopyUrlBtn.addEventListener('click', async function () {
+                    const email = getFirstRecipient();
+                    if (!email) { showAlert('warning', 'Please enter a recipient email first'); return; }
+                    try {
+                        const r = await fetch('/qrcode/url?email=' + encodeURIComponent(email));
+                        if (!r.ok) throw new Error('Server returned ' + r.status);
+                        const url = await r.text();
+                        await navigator.clipboard.writeText(url);
+                        showAlert('success', 'URL copied to clipboard');
+                    } catch (e) {
+                        showAlert('danger', 'Failed to copy URL: ' + e.message);
+                    }
+                });
+
+                // Restore / persist Google Form link
+                googleFormLinkInput.value = localStorage.getItem(GOOGLE_FORM_STORAGE_KEY) || '';
+                googleFormLinkInput.addEventListener('input', function () {
+                    localStorage.setItem(GOOGLE_FORM_STORAGE_KEY, googleFormLinkInput.value);
+                });
+
+                // Initial QR load (in case recipients already restored)
+                refreshQrPreview();
+
+
+                // --- Preview Email Body ---
+                const previewButton = document.getElementById('previewButton');
+
+                previewButton.addEventListener('click', function () {
+                    const emailBody = document.getElementById('emailBody');
+
+                    const previewWindow = window.open('', '_blank', 'width=800,height=600');
+                    previewWindow.document.open();
+                    previewWindow.document.write(emailBody.value);
+                    previewWindow.document.close();
+                });
+
+
+                // --- Upload Recipients File ---
+                const uploadRecipientsFileButton = document.getElementById('uploadRecipientsFileButton');
+                const recipientsFileInput = document.getElementById('recipientsFileInput');
+
+                uploadRecipientsFileButton.addEventListener('click', function () {
+                    recipientsFileInput.click();
+                });
+
+                recipientsFileInput.addEventListener('change', function () {
+                    const recipientsTextarea = document.getElementById('recipientsTextarea');
+
+                    const files = recipientsFileInput.files;
+                    if (files.length > 0) {
+                        const reader = new FileReader();
+                        let allRecipients = '';
+
+                        const readFile = (index) => {
+                            if (index >= files.length) {
+                                recipientsTextarea.value += allRecipients; // Keep newlines
+                                recipientsFileInput.value = ''; // Reset file input
+                                return;
+                            }
+
+                            const file = files[index];
+                            reader.onload = function (e) {
+                                const content    = e.target.result;
+                                const recipients = content.split(/,|\n/).map(email => email.trim()).filter(email => email).join('\n');
+                                allRecipients   += recipients + '\n';
+                                readFile(index + 1);
+                            };
+                            reader.readAsText(file);
+                        };
+
+                        readFile(0);
+                    }
+                });
+
+
+                // --- Upload HTML File ---
+                const uploadHtmlButton = document.getElementById('uploadHtmlButton');
+                const htmlFileInput = document.getElementById('htmlFileInput');
+
+                uploadHtmlButton.addEventListener('click', function () {
+                    htmlFileInput.click();
+                });
+
+                htmlFileInput.addEventListener('change', function () {
+                    const emailBodyTextarea = document.getElementById('emailBody');
+
+                    const file = htmlFileInput.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            emailBodyTextarea.value = e.target.result;
+                            htmlFileInput.value = ''; // Reset file input
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+
+
+                // --- Submit Form ---
+                const emailForm = document.getElementById('emailForm');
+                emailForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+
+                    // Create a FormData object from the form
+                    // Handle newline and comma parsing on the server side
+                    const formData = new URLSearchParams(new FormData(emailForm));
+
+                    // Send the form data to the server
+                    fetch('/email', {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: formData
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        showAlert('success', data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('danger', 'An error occurred while sending the email.');
+                    });
+                });
+
+                function showAlert(type, message) {
+                    const alert = document.createElement('div');
+                    alert.className = `alert alert-${type} alert-dismissible fade show`;
+                    alert.role = 'alert';
+                    alert.innerHTML = `
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    alertPlaceholder.appendChild(alert);
+
+                    // Automatically remove the alert after a few seconds
+                    setTimeout(() => {
+                        alert.classList.remove('show');
+                        alert.classList.add('fade');
+                        setTimeout(() => alert.remove(), 150);
+                    }, 5000);
+                }
+            });
+        </script>
+{% endblock %}
